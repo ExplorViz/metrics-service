@@ -1,0 +1,39 @@
+#!/bin/bash
+
+cleanup() {
+  local result=$?
+
+  if [ $result -eq 1 ]
+  then
+    echo "Pre-commit hook failed."
+  else
+    echo "Pre-commit hook passed."
+  fi
+
+  exit $result
+}
+
+trap cleanup EXIT
+
+echo "Running pre-commit hook"
+echo
+echo "NOTE: The pre-commit hook runs on all files in the working tree,
+not just on staged changes. If this leads to false positives, you can
+stash your unstaged changes before committing again."
+echo
+
+if ! command -v go &> /dev/null; then
+  echo "Command \"go\" is not available."
+  echo "Make sure to install it or bypass the hook via the --no-verify flag"
+  exit 1
+fi
+
+
+if ! command -v golangci-lint &> /dev/null; then
+  echo "Command \"golangci-lint\" is not available."
+  echo "Make sure to install it or bypass the hook via the --no-verify flag"
+  exit 1
+fi
+
+golangci-lint run || { echo "There are linting issues present."; exit 1; }
+go test ./... || { echo "There are failing tests."; exit 1; }

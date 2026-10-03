@@ -1,0 +1,76 @@
+include:
+  - project: "ExplorViz/code/deployment"
+    file: ".gitlab-ci-explorviz-common.yml"
+
+variables:
+  GO_DOCKER_VERSION: "1.26"
+  GOLANGCI_LINT_VERSION: "v2.12"
+
+default:
+  tags:
+    - exec-docker
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS"
+      when: never
+    - if: "$CI_COMMIT_BRANCH"
+
+stages:
+  - build
+  - code-analysis
+  - test
+  - deploy:images
+
+# See https://docs.gitlab.com/ci/caching/examples/#go
+.go-cache:
+  variables:
+    GOPATH: $CI_PROJECT_DIR/.go
+    GOCACHE: "$CI_PROJECT_DIR/.cache/go-build"
+  before_script:
+    - mkdir -p .go .cache/go-build
+  cache:
+    key:
+      files:
+        - go.mod
+        - go.sum
+    paths:
+      - .go/pkg/mod/
+      - .cache/go-build/
+
+build:
+  image: "golang:${GO_DOCKER_VERSION}"
+  extends: .go-cache
+  stage: build
+  script:
+    - go build -o metrics-service .
+  artifacts:
+    paths:
+      - ./metrics-service
+
+code-lint:
+  image: "golangci/golangci-lint:${GOLANGCI_LINT_VERSION}"
+  extends: .go-cache
+  stage: code-analysis
+  script:
+    - golangci-lint run ./... --timeout=5m --output.code-climate.path=gl-code-quality-report.json
+  artifacts:
+    reports:
+      codequality: gl-code-quality-report.json
+
+test:
+  image: "golang:${GO_DOCKER_VERSION}"
+  extends: .go-cache
+  stage: test
+  script:
+    - go test -v -race ./...
+
+push-dockerhub-mr:
+  extends: .build-and-deploy
+  stage: deploy:images
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    IMAGE_NAME: "metrics-service"
+    IMAGE_TAG: mr-${CI_MERGE_REQUEST_IID}
