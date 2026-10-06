@@ -20,6 +20,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/ExplorViz/metrics-service/internal/overview"
+	"github.com/ExplorViz/metrics-service/internal/values"
 )
 
 //go:embed resources/banner.txt
@@ -62,6 +63,10 @@ func main() {
 	overviewRepo := overview.Repository{Conn: conn}
 	overviewHandler := overview.NewHandler(overviewRepo)
 	overviewHandler.Register(mux)
+
+	valuesRepo := values.Repository{Conn: conn}
+	valuesHandler := values.NewHandler(valuesRepo)
+	valuesHandler.Register(mux)
 
 	srv := &http.Server{Addr: ":" + strconv.Itoa(*httpPort), Handler: corsHandler(addContentTypeJSON(mux))}
 
