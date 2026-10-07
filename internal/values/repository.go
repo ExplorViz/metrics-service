@@ -62,17 +62,22 @@ func (r *Repository) findGaugeMetricValues(ctx context.Context, landscapeToken s
 		queryParams = append(queryParams, clickhouse.Named("telemetryKey", req.TelemetryKey))
 	}
 
-	var interval string
+	var windowSize string
+	var binningSize string
 	switch req.Window {
 	case Window1H:
-		interval = "1 HOUR"
+		windowSize = "1 HOUR"
+		binningSize = "15 SECOND"
 	case Window4H:
-		interval = "4 HOUR"
+		windowSize = "4 HOUR"
+		binningSize = "1 MINUTE"
 	case Window24H:
-		interval = "24 HOUR"
+		windowSize = "24 HOUR"
+		binningSize = "6 MINUTE"
 	default:
 		slog.Error("received invalid window size, defaulting to 1h", "Window", req.Window)
-		interval = "1 HOUR"
+		windowSize = "1 HOUR"
+		binningSize = "15 SECOND"
 	}
 
 	var aggregationFunc string
@@ -95,10 +100,10 @@ func (r *Repository) findGaugeMetricValues(ctx context.Context, landscapeToken s
 		) AS latest_timestamp
 		SELECT
 			` + aggregationFunc + `(Value) AS Value,
-			toUnixTimestamp(toStartOfFiveMinutes(TimeUnix)) AS TimeUnixMilli
+			toUnixTimestamp64Milli(toDateTime64(toStartOfInterval(TimeUnix, INTERVAL ` + binningSize + `), 3)) AS TimeUnixMilli
 		FROM otel_metrics_gauge
 		WHERE
-			TimeUnix >= latest_timestamp - INTERVAL ` + interval + `
+			TimeUnix >= latest_timestamp - INTERVAL ` + windowSize + `
 			AND TimeUnix <= latest_timestamp
 			AND ` + conditions.String() + `
 		GROUP BY TimeUnixMilli
@@ -111,8 +116,8 @@ func (r *Repository) findGaugeMetricValues(ctx context.Context, landscapeToken s
 		return GaugeMetricValues{}, err
 	}
 
-	var start uint32 = 0
-	var end uint32 = 0
+	var start int64 = 0
+	var end int64 = 0
 	if len(points) > 0 {
 		start = points[0].TimeUnixMilli
 		end = points[len(points)-1].TimeUnixMilli
