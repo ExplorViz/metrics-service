@@ -64,6 +64,8 @@ func (h *Handler) getMetricValues(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	switch pointKind := query.Get("pointKind"); pointKind {
+	case "sum":
+		vals, err = h.repo.findSumMetricValues(r.Context(), lt, params)
 	case "gauge":
 		vals, err = h.repo.findGaugeMetricValues(r.Context(), lt, params)
 	default:
