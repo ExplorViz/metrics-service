@@ -19,7 +19,7 @@ import (
 	"github.com/peterbourgon/ff/v4/ffhelp"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/ExplorViz/metrics-service/internal/overview"
+	"github.com/ExplorViz/metrics-service/internal/catalog"
 	"github.com/ExplorViz/metrics-service/internal/values"
 )
 
@@ -60,9 +60,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	overviewRepo := overview.Repository{Conn: conn}
-	overviewHandler := overview.NewHandler(overviewRepo)
-	overviewHandler.Register(mux)
+	catalogRepo := catalog.Repository{Conn: conn}
+	catalogHandler := catalog.NewHandler(catalogRepo)
+	catalogHandler.Register(mux)
 
 	valuesRepo := values.Repository{Conn: conn}
 	valuesHandler := values.NewHandler(valuesRepo)

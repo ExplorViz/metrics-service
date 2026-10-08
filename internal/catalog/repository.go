@@ -1,4 +1,4 @@
-package overview
+package catalog
 
 import (
 	"context"
@@ -46,9 +46,9 @@ type MetricsSearchCursor struct {
 	PointKind string
 }
 
-// findMetricsOverview searches the database for available metrics associated with the given landscape.
+// findMetricsCatalog searches the database for available metrics associated with the given landscape.
 // The search space can be restricted using a variety of filter options (see [MetricsSearchParams]).
-func (r *Repository) findMetricsOverview(ctx context.Context, landscapeToken string, params MetricsSearchParams) ([]MetricOverview, error) {
+func (r *Repository) findMetricsCatalog(ctx context.Context, landscapeToken string, params MetricsSearchParams) ([]MetricsCatalogItem, error) {
 	queryParams := make([]any, 0, 7)
 
 	// Conditions that are applied to each individual table before they are unioned
@@ -154,7 +154,7 @@ func (r *Repository) findMetricsOverview(ctx context.Context, landscapeToken str
 		case "exp_histogram":
 			tableQueries = append(tableQueries, buildMetricsQuery("otel_metrics_exponential_histogram", "exp_histogram", preconditionsStr))
 		default:
-			return []MetricOverview{}, fmt.Errorf("received invalid point kind %s", *params.PointKind)
+			return []MetricsCatalogItem{}, fmt.Errorf("received invalid point kind %s", *params.PointKind)
 		}
 	} else {
 		tableQueries = append(
@@ -167,7 +167,7 @@ func (r *Repository) findMetricsOverview(ctx context.Context, landscapeToken str
 	}
 
 	query := `
-		WITH metrics_overview AS (
+		WITH metrics_catalog AS (
 			` + strings.Join(tableQueries, " UNION ALL ") + `
 		)
 		SELECT
@@ -177,14 +177,14 @@ func (r *Repository) findMetricsOverview(ctx context.Context, landscapeToken str
 			Services,
 			Entities,
 			PointKind
-		FROM metrics_overview
+		FROM metrics_catalog
 		` + postconditionsStr + ordering + queryLimit
 
-	metrics := []MetricOverview{}
+	metrics := []MetricsCatalogItem{}
 
 	err := r.Conn.Select(ctx, &metrics, query, queryParams...)
 	if err != nil {
-		return []MetricOverview{}, err
+		return []MetricsCatalogItem{}, err
 	}
 
 	return metrics, nil

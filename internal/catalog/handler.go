@@ -1,4 +1,4 @@
-package overview
+package catalog
 
 import (
 	"encoding/json"
@@ -63,7 +63,7 @@ func (h *Handler) getLandscapeMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics, err := h.repo.findMetricsOverview(r.Context(), lt, params)
+	metrics, err := h.repo.findMetricsCatalog(r.Context(), lt, params)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

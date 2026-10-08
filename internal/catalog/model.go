@@ -1,7 +1,7 @@
-package overview
+package catalog
 
-// A MetricOverview contains surface-level information about an available runtime metric.
-type MetricOverview struct {
+// A MetricsCatalogItem contains surface-level information about an available runtime metric.
+type MetricsCatalogItem struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Unit        string `json:"unit"`
