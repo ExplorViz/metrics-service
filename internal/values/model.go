@@ -52,11 +52,25 @@ func (v GaugeMetricValues) MarshalJSON() ([]byte, error) {
 	})
 }
 
-type HistogramMetricValues struct {
-	Points []HistogramMetricPoint
-	Bounds []float64
+type HistogramMetricPoint struct {
+	Bound *float64 `json:"bound,omitempty"`
+	Count uint64   `json:"count"`
 }
 
-type HistogramMetricPoint struct {
-	BucketCounts []uint64
+type HistogramMetricValues struct {
+	Points []HistogramMetricPoint `json:"points"`
+	Sum    float64                `json:"sum"`
+	Count  uint64                 `json:"count"`
+}
+
+func (v HistogramMetricValues) MarshalJSON() ([]byte, error) {
+	type Alias HistogramMetricValues
+
+	return json.Marshal(struct {
+		Alias
+		PointKind string `json:"pointKind"`
+	}{
+		Alias:     (Alias)(v),
+		PointKind: "histogram",
+	})
 }

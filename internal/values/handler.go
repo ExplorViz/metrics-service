@@ -68,6 +68,8 @@ func (h *Handler) getMetricValues(w http.ResponseWriter, r *http.Request) {
 		vals, err = h.repo.findSumMetricValues(r.Context(), lt, params)
 	case "gauge":
 		vals, err = h.repo.findGaugeMetricValues(r.Context(), lt, params)
+	case "histogram":
+		vals, err = h.repo.findHistogramMetricValue(r.Context(), lt, params)
 	default:
 		http.Error(w, fmt.Sprintf(`Invalid value %s for parameter "pointKind"`, pointKind), http.StatusBadRequest)
 		return
